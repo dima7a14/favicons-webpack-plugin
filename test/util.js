@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const webpack = require('webpack');
 const merge = require('webpack-merge');
+const sizeOf = require('image-size');
 
 const fixtures = path.resolve(__dirname, 'fixtures');
 module.exports.expected = path.resolve(fixtures, 'expected');
@@ -49,7 +50,7 @@ module.exports.snapshotCompilationAssets = (t, compilerStats) => {
   const assetNames = Object.keys(assets).sort();
   // Check if all files are generated correctly
   t.snapshot(assetNames);
-  const textFiles = /\.(json|html?)$/;
+  const textFiles = /\.(json|html?|webapp|xml)$/;
   // CSS and JS files are not touched by this plugin
   // therefore those files are excluded from snapshots
   const ignoredFiles = /\.(js|css)$/;
@@ -61,7 +62,16 @@ module.exports.snapshotCompilationAssets = (t, compilerStats) => {
       const content = assets[assetName].source().toString('utf8').replace(/\r/g, '');
       return {
         assetName,
-        content: content.length === '' ? 'EMPTY FILE' : (isTxtFile ? content : 'binary'),
+        content: content.length === '' ? 'EMPTY FILE' : (isTxtFile ? content : getFileDetails(assetName, assets[assetName].source())),
     }});
   t.snapshot(assetContents);
+}
+
+function getFileDetails(assetName, buffer) {
+  try {
+    const size = sizeOf(buffer);
+    return size.type + ' ' + size.width + 'x' + size.height;
+  } catch(e) {
+    return 'binary ' + assetName;
+  }
 }
